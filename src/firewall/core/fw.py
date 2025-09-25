@@ -281,7 +281,7 @@ class Firewall:
                 )
             else:
                 if self.nftables_enabled:
-                    log.info1(
+                    log.debug1(
                         "iptables-restore and iptables are missing, "
                         "IPv4 direct rules won't be usable."
                     )
@@ -311,7 +311,7 @@ class Firewall:
                 )
             else:
                 if self.nftables_enabled:
-                    log.info1(
+                    log.debug1(
                         "ip6tables-restore and ip6tables are missing, "
                         "IPv6 direct rules won't be usable."
                     )
@@ -341,7 +341,7 @@ class Firewall:
                 )
             else:
                 if self.nftables_enabled:
-                    log.info1(
+                    log.debug1(
                         "ebtables-restore and ebtables are missing, "
                         "eb direct rules won't be usable."
                     )
