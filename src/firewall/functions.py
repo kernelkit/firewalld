@@ -10,9 +10,10 @@ import os
 import os.path
 import shlex
 import string
+import sys
 import tempfile
 from firewall.core.logger import log
-from firewall.config import FIREWALLD_TEMPDIR, FIREWALLD_PIDFILE
+from firewall.config import FIREWALLD_CONF, FIREWALLD_TEMPDIR, FIREWALLD_PIDFILE
 
 NOPRINT_TRANS_TABLE = {
     # Limit to C0 and C1 code points. Building entries for all unicode code
@@ -576,12 +577,35 @@ def ppid_of_pid(pid):
     return pid
 
 
+def _nftables_backend():
+    """Return True if FirewallBackend=nftables is configured in firewalld.conf.
+
+    When using nftables the iptables-derived 28-char chain name limit does not
+    apply.  Reading the config file directly avoids threading backend context
+    through check_name() call sites, which have no access to all_io_objects.
+    """
+    try:
+        with open(FIREWALLD_CONF) as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith("FirewallBackend="):
+                    return line.split("=", 1)[1].strip() == "nftables"
+    except OSError:
+        pass
+    return False
+
+
 def max_policy_name_len():
     """
     iptables limits length of chain to (currently) 28 chars.
     The longest chain we create is POST_<policy>_allow,
     which leaves 28 - 11 = 17 chars for <policy>.
+
+    When using the nftables backend, nftables imposes no practical name length
+    restriction, so we return sys.maxsize to lift the check entirely.
     """
+    if _nftables_backend():
+        return sys.maxsize
     from firewall.core.ipXtables import POLICY_CHAIN_PREFIX
     from firewall.core.base import SHORTCUTS
 
@@ -594,7 +618,12 @@ def max_zone_name_len():
     Netfilter limits length of chain to (currently) 28 chars.
     The longest chain we create is POST_<zone>_allow,
     which leaves 28 - 11 = 17 chars for <zone>.
+
+    When using the nftables backend, nftables imposes no practical name length
+    restriction, so we return sys.maxsize to lift the check entirely.
     """
+    if _nftables_backend():
+        return sys.maxsize
     from firewall.core.base import SHORTCUTS
 
     longest_shortcut = max(map(len, SHORTCUTS.values()))
