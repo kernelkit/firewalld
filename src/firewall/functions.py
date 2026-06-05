@@ -495,11 +495,14 @@ def writefile(filename, line):
 
 
 def enable_ip_forwarding(ipv):
-    if ipv == "ipv4":
-        return writefile("/proc/sys/net/ipv4/ip_forward", "1\n")
-    elif ipv == "ipv6":
-        return writefile("/proc/sys/net/ipv6/conf/all/forwarding", "1\n")
-    return False
+    # Infix manages IP forwarding per-interface via the sysctls
+    # net.ipv4.conf.<iface>.forwarding and net.ipv6.conf.<iface>.forwarding.
+    # Writing the global net.ipv4.ip_forward / net.ipv6.conf.all.forwarding
+    # knobs would clobber those per-interface settings, since the kernel
+    # propagates the global value to every interface.  Make this a no-op:
+    # firewalld still installs the masquerade and forward-port nft rules, and
+    # forwarding works on the interfaces where Infix has enabled it.
+    return True
 
 
 def get_nf_conntrack_short_name(module):
